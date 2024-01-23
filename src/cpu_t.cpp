@@ -2,7 +2,7 @@
 #include "logger.hpp"
 #include "cpu/cpu.hpp"
 
-cpu_t::cpu_t() {
+cpu_t::cpu_t(int smoothing) {
 
 	std::string line;
 	std::ifstream fd("/proc/stat", std::ios::in);
@@ -13,6 +13,7 @@ cpu_t::cpu_t() {
 	this -> _size = 0;
 	this -> _smooth = 0;
 	this -> _disabled = false;
+	this -> _def_smooth = smoothing;
 
 	while ( getline(fd, line)) {
 
@@ -51,7 +52,7 @@ void cpu_t::update_load(const std::string& line) {
 		int result = this -> calculate_load(this -> tck0, this -> tck1);
 
 		if ( result > 0 ) {
-			this -> _smooth = 2;
+			this -> _smooth = this -> _def_smooth;
 			this -> _load = result;
 		} else if ( this -> _load > 0 && result == 0 && this -> _smooth > 0 ) {
 			this -> _smooth--;
@@ -78,7 +79,7 @@ void cpu_t::update_load(const std::string& line) {
 		int result = this -> calculate_load(this -> nodes[name].tck0, this -> nodes[name].tck1);
 
 		if ( result > 0 ) {
-			this -> nodes[name]._smooth = 2;
+			this -> nodes[name]._smooth = this -> _def_smooth;
 			this -> nodes[name]._load = result;
 		} else if ( this -> nodes[name]._load > 0 && result == 0 && this -> nodes[name]._smooth > 0 ) {
 			this -> nodes[name]._smooth--;

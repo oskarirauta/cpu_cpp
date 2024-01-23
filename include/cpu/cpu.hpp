@@ -80,7 +80,7 @@ class cpu_t {
 		std::string operator [](const std::string& name);
 		cpu_t::node_t& operator [](size_t i);
 
-		cpu_t();
+		cpu_t(int smoothing = 1);
 		~cpu_t();
 
 	private:
@@ -89,6 +89,7 @@ class cpu_t {
 		size_t _size;
 		int _load;
 		int _smooth;
+		int _def_smooth;
 		cpu_t::node_t::tck_t tck0, tck1;
 		common::lowercase_map<cpu_t::node_t> nodes;
 
