@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
 	int i = 0;
 
-	while ( i++ < 8 ) {
+	while ( i++ < 20 && !cpu -> disabled()) {
 		std::this_thread::sleep_for (std::chrono::milliseconds(850));
 		cpu -> update();
 		std::cout << "cpu load: " << cpu -> load() << std::endl;

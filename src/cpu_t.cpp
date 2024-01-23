@@ -11,7 +11,8 @@ cpu_t::cpu_t() {
 		throws << "failed to open /proc/stat" << std::endl;
 
 	this -> _size = 0;
-	this -> disabled = false;
+	this -> _smooth = 0;
+	this -> _disabled = false;
 
 	while ( getline(fd, line)) {
 
@@ -29,13 +30,13 @@ cpu_t::~cpu_t() {
 	this -> nodes.clear();
 }
 
-double cpu_t::calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1) {
+int cpu_t::calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1) {
 
 	unsigned long long total = tck1.total_ticks() - tck0.total_ticks();
 	unsigned long long idle = tck1.idle_ticks() - tck0.idle_ticks();
 	unsigned long long active = total - idle;
 	double ret = active != 0 && total != 0 ? ( active * 100.f / total ) : (double)0;
-	return ret > 100 ? 100 : ( ret < 0 ? 0 : ret );
+	return ret > 100 ? 100 : ( ret < 0 ? 0 : (int)ret );
 }
 
 void cpu_t::update_load(const std::string& line) {
@@ -47,7 +48,16 @@ void cpu_t::update_load(const std::string& line) {
 
 		this -> tck0 = this -> tck1;
 		this -> tck1 = line;
-		this -> _load = this -> calculate_load(this -> tck0, this -> tck1);
+		int result = this -> calculate_load(this -> tck0, this -> tck1);
+
+		if ( result > 0 ) {
+			this -> _smooth = 2;
+			this -> _load = result;
+		} else if ( this -> _load > 0 && result == 0 && this -> _smooth > 0 ) {
+			this -> _smooth--;
+		} else if ( this -> _load > 0 && result == 0 && this -> _smooth == 0 ) {
+			this -> _load = result;
+		}
 
 	} else if ( auto pos = line.find_first_of(' '); pos != std::string::npos ) {
 
@@ -65,7 +75,16 @@ void cpu_t::update_load(const std::string& line) {
 
 		this -> nodes[name].tck0 = this -> nodes[name].tck1;
 		this -> nodes[name].tck1 = line;
-		this -> nodes[name]._load = this -> calculate_load(this -> nodes[name].tck0, this -> nodes[name].tck1);
+		int result = this -> calculate_load(this -> nodes[name].tck0, this -> nodes[name].tck1);
+
+		if ( result > 0 ) {
+			this -> nodes[name]._smooth = 2;
+			this -> nodes[name]._load = result;
+		} else if ( this -> nodes[name]._load > 0 && result == 0 && this -> nodes[name]._smooth > 0 ) {
+			this -> nodes[name]._smooth--;
+		} else if ( this -> nodes[name]._load > 0 && result == 0 && this -> nodes[name]._smooth == 0 ) {
+			this -> nodes[name]._load = result;
+		}
 
 	} else logger::warning["cpu"] << "failed to parse line " << line << std::endl;
 }
@@ -80,16 +99,21 @@ size_t cpu_t::size() {
 	return this -> _size;
 }
 
+bool cpu_t::disabled() {
+
+	return this -> _disabled;
+}
+
 void cpu_t::update() {
 
-	if ( this -> disabled )
+	if ( this -> _disabled )
 		return;
 
 	std::ifstream fd("/proc/stat", std::ios::in);
 
 	if ( fd.fail() || !fd.is_open() || !fd.good()) {
 
-		this -> disabled = true;
+		this -> _disabled = true;
 		logger::error["cpu"] << "failed to read /proc/stat" << std::endl;
 		if ( fd.is_open())
 			fd.close();

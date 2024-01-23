@@ -41,8 +41,6 @@ class cpu_t {
 						unsigned long long total_ticks() const;
 						unsigned long long idle_ticks() const;
 
-						double load() const;
-
 						tck_t& operator =(const tck_t& other);
 						tck_t& operator =(const std::string& s);
 
@@ -54,7 +52,8 @@ class cpu_t {
 
 				std::string _id;
 				int _number;
-				double _load;
+				int _load;
+				int _smooth;
 				cpu_t::node_t::tck_t tck0, tck1;
 				common::lowercase_map<std::string> values;
 
@@ -66,7 +65,7 @@ class cpu_t {
 
 				std::string operator [](const std::string& name) const;
 
-				node_t() : _id(""), _load(0) {};
+				node_t() : _id(""), _load(0), _smooth(0) {};
 				node_t(const std::string& id);
 
 				friend std::ostream& operator <<(std::ostream& os, const node_t& node);
@@ -75,6 +74,7 @@ class cpu_t {
 
 		int load();
 		size_t size();
+		bool disabled();
 
 		void update();
 		std::string operator [](const std::string& name);
@@ -85,14 +85,15 @@ class cpu_t {
 
 	private:
 
-		bool disabled;
+		bool _disabled;
 		size_t _size;
 		int _load;
+		int _smooth;
 		cpu_t::node_t::tck_t tck0, tck1;
 		common::lowercase_map<cpu_t::node_t> nodes;
 
 		void update_load(const std::string& line);
-		double calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1);
+		int calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1);
 
 		friend std::ostream& operator <<(std::ostream& os, cpu_t& cpu);
 		friend std::ostream& operator <<(std::ostream& os, cpu_t *cpu);

@@ -122,7 +122,7 @@ std::string cpu_t::node_t::id() const {
 
 int cpu_t::node_t::load() const {
 
-	return (int)this -> _load;
+	return this -> _load;
 }
 
 std::string cpu_t::node_t::operator [](const std::string& name) const {
