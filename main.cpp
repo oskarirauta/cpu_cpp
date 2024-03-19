@@ -1,7 +1,9 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <iomanip>
 #include "cpu/cpu.hpp"
+#include "cpu/process.hpp"
 
 int main(int argc, char **argv) {
 
@@ -10,6 +12,7 @@ int main(int argc, char **argv) {
 	//cpu_t::tck_t x("cpu  4830396 21 862783 5044180904 42128 0 316560 0 0 0");
 
 	cpu_t *cpu = new cpu_t();
+	cpu_t::process_t *proc = new cpu_t::process_t(::getpid());
 
 	std::cout << cpu << "\n" << std::endl;
 
@@ -18,9 +21,14 @@ int main(int argc, char **argv) {
 	while ( i++ < 20 && !cpu -> disabled()) {
 		std::this_thread::sleep_for (std::chrono::milliseconds(850));
 		cpu -> update();
-		std::cout << "cpu load: " << cpu -> load() << std::endl;
+		proc -> update();
+		std::cout << "cpu load: " << cpu -> load();
+		std::cout << " process cpu usage: " << std::fixed << std::setprecision(2) << proc -> usage() << "%";
+		std::cout << " RAM: " << proc -> memory_usage() << " kB / " << proc -> memory_available() << " kB";
+		std::cout << std::endl;
 	}
 
+	delete proc;
 	delete cpu;
 	return 0;
 }

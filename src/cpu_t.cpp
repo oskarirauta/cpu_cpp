@@ -136,7 +136,7 @@ std::string cpu_t::operator [](const std::string& name) {
 	std::string _name = name;
 	_name = common::trim_ws(common::to_lower(std::as_const(name)));
 
-	if ( _name == "name" )
+	if ( _name == "name" || _name == "cpu" )
 		return "cpu";
 
 	try {

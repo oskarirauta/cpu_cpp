@@ -1,15 +1,16 @@
-# cpu_cpp
-cpu information library
-
+[![License:MIT](https://img.shields.io/badge/License-MIT-blue?style=plastic)](LICENSE)
 [![C++ CI build](https://github.com/oskarirauta/cpu_cpp/actions/workflows/build.yml/badge.svg)](https://github.com/oskarirauta/cpu_cpp/actions/workflows/build.yml)
+### cpu_cpp
 
-### Depends
+CPU and process monitoring library
+
+## <sub>Depends</sub>
 
  - [throws_cpp](https://github.com/oskarirauta/throws_cpp)
  - [common_cpp](https://github.com/oskarirauta/common_cpp)
  - [logger_cpp](https://github.com/oskarirauta/logger_cpp)
 
-### Importing
+## <sub>Importing</sub>
 
  - clone throws_cpp as a submodule to throws
  - clone common_cpp as a submodule to common
@@ -21,12 +22,9 @@ cpu information library
 Paths are modifiable, check Makefiles. For example code, clone this repository with
 --recursive-submodules enabled.
 
-### Example
+## <sub>Example</sub>
 
-Sample code is provided
-
-### License
-
-MIT
+Sample code for monitoring cpu usage and
+single processe's resource usage is provided
 
 

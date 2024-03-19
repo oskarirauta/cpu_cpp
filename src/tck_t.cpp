@@ -1,4 +1,6 @@
 #include <utility>
+#include <istream>
+#include <sstream>
 
 #include "common.hpp"
 #include "throws.hpp"
@@ -6,43 +8,16 @@
 
 cpu_t::node_t::tck_t::tck_t(const std::string& s) {
 
-	int i = 0;
-	std::string id(common::trim_ws(std::as_const(s)) + " ");
-	std::string word;
+	std::istringstream ss(s + ( std::isspace(s.back()) ? "" : "\n"));
+	std::string cpu_id;
 
-	while ( i < 11 && !id.empty()) {
+	ss >> cpu_id >>
+		this -> user >> this -> nice >> this -> system >> this -> idle >>
+		this -> iowait >> this -> irq >> this -> softirq >> this -> steal >>
+		this -> guest >> this -> guest_nice;
 
-		if ( common::whitespace.contains(id.front()) && word.empty()) {
-
-			id.erase(0, 1);
-			continue;
-		} else if ( common::whitespace.contains(id.front())) {
-
-			if ( i == 0 ) {
-				word = "";
-				i++;
-				continue;
-			}
-
-			unsigned long long val;
-			try {
-				val = std::stoull(word);
-			} catch ( const std::runtime_error& e ) {
-				throws << "conversion error while converting " << word << " to number" << std::endl;
-			}
-
-			word = "";
-			this -> operator[](i - 1) = val;
-			i++;
-			continue;
-		}
-
-		word += id.front();
-		id.erase(0, 1);
-
-	}
-	//this -> operator[](i) = 5;
-
+	if ( !ss.good() || ss.fail() || ss.bad())
+		throws << "conversion error while parsing cpu stats from " << s << std::endl;
 }
 
 unsigned long long cpu_t::node_t::tck_t::total_ticks() const {
@@ -62,6 +37,18 @@ unsigned long long cpu_t::node_t::tck_t::total_ticks() const {
 unsigned long long cpu_t::node_t::tck_t::idle_ticks() const {
 
 	return this -> idle + this -> iowait;
+}
+
+unsigned long long cpu_t::node_t::tck_t::busy_ticks() const {
+
+	return this -> total_ticks() - this -> idle_ticks();
+}
+
+bool cpu_t::node_t::tck_t::empty() const {
+
+	return this -> user == 0 && this -> nice == 0 && this -> system == 0 && this -> idle == 0 &&
+		this -> iowait == 0 && this -> irq == 0 && this -> softirq == 0 && this -> steal == 0 &&
+		this -> guest == 0 && this -> guest_nice == 0;
 }
 
 cpu_t::node_t::tck_t& cpu_t::node_t::tck_t::operator =(const cpu_t::node_t::tck_t& other) {
@@ -95,6 +82,19 @@ cpu_t::node_t::tck_t& cpu_t::node_t::tck_t::operator =(const std::string& s) {
 	this -> guest_nice = other.guest_nice;
 
 	return *this;
+}
+
+bool cpu_t::node_t::tck_t::operator ==(const tck_t& other) {
+
+	return this -> user == other.user && this -> nice == other.nice && this -> system == other.system &&
+		this -> idle == other.idle && this -> iowait == other.iowait && this -> irq == other.irq &&
+		this -> softirq == other.softirq && this -> steal == other.steal &&
+		this -> guest == other.guest && this -> guest_nice == other.guest_nice;
+}
+
+bool cpu_t::node_t::tck_t::operator !=(const tck_t& other) {
+
+	return !(this -> operator ==(other));
 }
 
 unsigned long long& cpu_t::node_t::tck_t::operator [](const int i) {

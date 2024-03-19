@@ -38,6 +38,58 @@ static std::string rounded(const std::string& s) {
 	return std::to_string((int)::round(d));
 }
 
+unsigned long long cpu_t::node_t::user() const {
+	return this -> tck1.user;
+}
+
+unsigned long long cpu_t::node_t::nice() const {
+	return this -> tck1.nice;
+}
+
+unsigned long long cpu_t::node_t::system() const {
+	return this -> tck1.system;
+}
+
+unsigned long long cpu_t::node_t::idle() const {
+	return this -> tck1.idle;
+}
+
+unsigned long long cpu_t::node_t::iowait() const {
+	return this -> tck1.iowait;
+}
+
+unsigned long long cpu_t::node_t::irq() const {
+	return this -> tck1.irq;
+}
+
+unsigned long long cpu_t::node_t::softirq() const {
+	return this -> tck1.softirq;
+}
+
+unsigned long long cpu_t::node_t::steal() const {
+	return this -> tck1.steal;
+}
+
+unsigned long long cpu_t::node_t::guest() const {
+	return this -> tck1.guest;
+}
+
+unsigned long long cpu_t::node_t::guest_nice() const {
+	return this -> tck1.guest_nice;
+}
+
+unsigned long long cpu_t::node_t::total_ticks() const {
+	return this -> tck1.total_ticks();
+}
+
+unsigned long long cpu_t::node_t::idle_ticks() const {
+	return this -> tck1.idle_ticks();
+}
+
+unsigned long long cpu_t::node_t::busy_ticks() const {
+	return this -> tck1.busy_ticks();
+}
+
 cpu_t::node_t::node_t(const std::string& id) {
 
 	if ( id.size() < 4 )

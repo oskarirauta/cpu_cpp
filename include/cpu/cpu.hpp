@@ -9,10 +9,13 @@
 class cpu_t {
 
 	public:
+		class process_t;
+		friend class process_t;
 
 		class node_t {
 
 			friend class cpu_t;
+			friend class cpu_t::process_t;
 
 			private:
 
@@ -20,6 +23,7 @@ class cpu_t {
 
 					friend class cpu_t;
 					friend class cpu_t::node_t;
+					friend class cpu_t::process_t;
 
 					private:
 
@@ -40,9 +44,13 @@ class cpu_t {
 
 						unsigned long long total_ticks() const;
 						unsigned long long idle_ticks() const;
+						unsigned long long busy_ticks() const;
+						bool empty() const;
 
 						tck_t& operator =(const tck_t& other);
 						tck_t& operator =(const std::string& s);
+						bool operator ==(const tck_t& other);
+						bool operator !=(const tck_t& other);
 
 						tck_t() : user(0), nice(0), system(0), idle(0), iowait(0), irq(0), softirq(0), steal(0), guest(0), guest_nice(0) {}
 						tck_t(const tck_t& other) : user(other.user), nice(other.nice), idle(other.idle), iowait(other.iowait), irq(other.irq),
@@ -64,6 +72,21 @@ class cpu_t {
 				int load() const;
 
 				std::string operator [](const std::string& name) const;
+
+				unsigned long long user() const;
+				unsigned long long nice() const;
+				unsigned long long system() const;
+				unsigned long long idle() const;
+				unsigned long long iowait() const;
+				unsigned long long irq() const;
+				unsigned long long softirq() const;
+				unsigned long long steal() const;
+				unsigned long long guest() const;
+				unsigned long long guest_nice() const;
+
+				unsigned long long total_ticks() const;
+				unsigned long long idle_ticks() const;
+				unsigned long long busy_ticks() const;
 
 				node_t() : _id(""), _load(0), _smooth(0) {};
 				node_t(const std::string& id);
