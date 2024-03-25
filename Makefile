@@ -11,6 +11,7 @@ OBJS:= \
 CPU_DIR:=.
 include common/Makefile.inc
 include throws/Makefile.inc
+include scanner/Makefile.inc
 include logger/Makefile.inc
 include ./Makefile.inc
 
@@ -21,7 +22,7 @@ $(shell mkdir -p objs)
 objs/main.o: main.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<;
 
-example: $(COMMON_OBJS) $(THROWS_OBJS) $(LOGGER_OBJS) $(CPU_OBJS) $(OBJS)
+example: $(COMMON_OBJS) $(THROWS_OBJS) $(SCANNER_OBJS) $(LOGGER_OBJS) $(CPU_OBJS) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -L. $(LIBS) $^ -o $@;
 
 .PHONY: clean

@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "throws.hpp"
+#include "scanner.hpp"
 #include "cpu/cpu.hpp"
 #include "cpu/process.hpp"
 
@@ -27,6 +28,26 @@ static std::string readline(const std::string& filename) {
 
 	fd.close();
 	return line;
+}
+
+void parse(const std::string& s, const std::map<size_t, std::variant<int*, std::string*>>& m) {
+
+	std::stringstream ss(s);
+	size_t max_len = std::numeric_limits<std::streamsize>::max();
+	size_t c = 0;
+
+	for ( auto p : m ) {
+
+		while ( c < p.first ) {
+			ss.ignore(max_len, ' ');
+			c++;
+		}
+
+		if ( std::holds_alternative<int*>(p.second))
+			ss >> *std::get<int*>(p.second);
+
+	}
+
 }
 
 pid_t cpu_t::process_t::pid() const {
@@ -53,11 +74,7 @@ unsigned long long cpu_t::process_t::memory_usage() const {
 	return this -> _memory_usage / 1024;
 }
 
-unsigned long long cpu_t::process_t::memory_available() const {
-	return this -> _memory_avail;
-}
-
-int cpu_t::process_t::on_cpu() const {
+int cpu_t::process_t::last_seen_on_cpu() const {
 	return this -> _on_cpu;
 }
 
@@ -110,26 +127,17 @@ void cpu_t::process_t::update_pid(const pid_t& pid) {
 	if ( line.empty())
 		throws << "failed to parse /proc/" << pid << "/stat" << std::endl;
 
-	std::stringstream ss(line);
-	std::string ignored;
-	unsigned long long new_utime, new_stime, mem;
-	size_t max_length = std::numeric_limits<std::streamsize>::max();
+	unsigned long long new_utime, new_stime;
 
-	for ( int i = 0; i < 13; i++ )
-		ss.ignore(max_length, ' ');
+	size_t count = scan(line, {
+			{ 13, &new_utime },
+			{ 14, &new_stime },
+			{ 22, &this -> _memory_usage },
+			{ 38, &this -> _on_cpu }
+		});
 
-	ss >> new_utime >> new_stime;
-
-	if ( !ss.good() || ss.fail() || ss.bad())
-		throws << "failed to parse /proc/" << pid << "/stat" << std::endl;
-
-	for ( int i = 0; i < 8; i++ )
-		ss.ignore(max_length, ' ');
-
-	ss >> mem;
-
-	if ( ss.good() && !ss.fail() && !ss.bad())
-		this -> _memory_usage = mem;
+	if ( count < 2 )
+		return;
 
 	this -> utime[0] = this -> utime[1];
 	this -> stime[0] = this -> stime[1];
@@ -169,42 +177,6 @@ void cpu_t::process_t::update_args(const pid_t& pid) {
 		throws << "failed to parse /proc/" << pid << "/cmdline" << std::endl;
 
 	this -> _cmdline = line;
-
-	std::ifstream fd("/proc/" + std::to_string(pid) + "/root/proc/meminfo", std::ios::in);
-
-	if ( fd.fail() || !fd.is_open() || !fd.good()) {
-
-		fd = std::ifstream("/proc/meminfo", std::ios::in);
-
-		if (( fd.fail() || !fd.good()) && fd.is_open())
-				fd.close();
-	}
-
-	if ( fd.is_open()) {
-
-		line = "";
-		while ( getline(fd, line)) {
-
-			if ( line.size() > 10 && line.rfind("MemTotal:", 0) == 0 )
-				break;
-			else line = "";
-		}
-
-		fd.close();
-
-		if ( !line.empty()) {
-
-			std::stringstream ss(line);
-			unsigned long long mem;
-
-			ss.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-			ss >> mem;
-
-			if ( ss.good() && !ss.fail() && !ss.bad())
-				this -> _memory_avail = mem;
-		}
-	}
-
 }
 
 void cpu_t::process_t::update() {
@@ -260,5 +232,4 @@ cpu_t::process_t::process_t(const pid_t& pid) {
 		this -> _good = false;
 		throw e;
 	}
-
 }

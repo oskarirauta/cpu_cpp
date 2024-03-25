@@ -9,10 +9,10 @@ int main(int argc, char **argv) {
 
 	std::cout << "cpu_cpp test" << std::endl;
 
-	//cpu_t::tck_t x("cpu  4830396 21 862783 5044180904 42128 0 316560 0 0 0");
+	pid_t PID = ::getpid();
 
 	cpu_t *cpu = new cpu_t();
-	cpu_t::process_t *proc = new cpu_t::process_t(::getpid());
+	cpu_t::process_t *proc = new cpu_t::process_t(PID);
 
 	std::cout << cpu << "\n" << std::endl;
 
@@ -24,8 +24,7 @@ int main(int argc, char **argv) {
 		proc -> update();
 		std::cout << "cpu load: " << cpu -> load();
 		std::cout << " process cpu usage: " << std::fixed << std::setprecision(2) << proc -> usage() << "%";
-		std::cout << " RAM: " << proc -> memory_usage() << " kB / " << proc -> memory_available() << " kB";
-		std::cout << std::endl;
+		std::cout << " RAM: " << proc -> memory_usage() << " kB on cpu: " << proc -> last_seen_on_cpu() << std::endl;
 	}
 
 	delete proc;

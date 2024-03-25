@@ -11,7 +11,6 @@ class cpu_t::process_t {
 		cpu_t::node_t::tck_t tck[2];
 		unsigned long long utime[2], stime[2];
 		unsigned long long _memory_usage = 0;
-		unsigned long long _memory_avail = 0;
 		double _usage = 0.0;
 
 		std::string _cmdline;
@@ -28,8 +27,7 @@ class cpu_t::process_t {
 		std::string cmdline() const;
 		double usage() const;
 		unsigned long long memory_usage() const;
-		unsigned long long memory_available() const;
-		int on_cpu() const;
+		int last_seen_on_cpu() const;
 		bool good() const;
 
 		void update();
