@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 		std::this_thread::sleep_for (std::chrono::milliseconds(850));
 		cpu -> update();
 		proc -> update();
-		std::cout << "cpu load: " << cpu -> load();
+		std::cout << "cpu load: " << cpu -> load() << " cpu temp: " << cpu -> temp();
 		std::cout << " process cpu usage: " << std::fixed << std::setprecision(2) << proc -> usage() << "%";
 		std::cout << " RAM: " << proc -> memory_usage() << " kB on cpu: " << proc -> last_seen_on_cpu() << std::endl;
 	}

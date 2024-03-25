@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include "throws.hpp"
 #include "logger.hpp"
 #include "cpu/cpu.hpp"
@@ -14,6 +16,8 @@ cpu_t::cpu_t(int smoothing) {
 	this -> _smooth = 0;
 	this -> _disabled = false;
 	this -> _def_smooth = smoothing;
+	this -> _temp_path = "-";
+	this -> _temp = 0;
 
 	while ( getline(fd, line)) {
 
@@ -88,6 +92,97 @@ void cpu_t::update_load(const std::string& line) {
 		}
 
 	} else logger::warning["cpu"] << "failed to parse line " << line << std::endl;
+}
+
+static std::string init_cpu_temp() {
+
+	std::filesystem::path basepath("/sys/class/thermal");
+
+	if ( !std::filesystem::is_directory(basepath))
+		return "";
+
+	for ( auto const& dir_entry : std::filesystem::directory_iterator{basepath}) {
+
+		if ( dir_entry.path().string().rfind(basepath.string() + "/thermal_", 0) != 0 )
+			continue;
+
+		std::filesystem::path typepath(dir_entry.path().string() + "/type");
+		std::filesystem::path temppath(dir_entry.path().string() + "/temp");
+
+		if ( !std::filesystem::exists(typepath) || !std::filesystem::exists(temppath) ||
+			!std::filesystem::is_regular_file(typepath) || ! std::filesystem::is_regular_file(temppath))
+			continue;
+
+		std::fstream typefile(typepath.string(), std::ios::in);
+
+		if ( !typefile.is_open() || !typefile.good()) {
+
+			if ( typefile.is_open())
+				typefile.close();
+			continue;
+		}
+
+		std::fstream tempfile(temppath.string(), std::ios::in);
+
+		if ( !tempfile.is_open() || !tempfile.good()) {
+
+			if ( tempfile.is_open())
+				tempfile.close();
+			continue;
+		}
+
+		std::string z_type, z_temp;
+
+		if ( std::getline(typefile, z_type) && std::getline(tempfile, z_temp) && z_type == "x86_pkg_temp" ) {
+
+			typefile.close();
+			tempfile.close();
+
+			try {
+				std::stoi(z_temp);
+			} catch ( const std::exception& e ) {
+				continue;
+			}
+
+			return temppath.string();
+
+		} else {
+
+			typefile.close();
+			tempfile.close();
+		}
+	}
+
+	return "";
+}
+
+int cpu_t::temp() {
+
+	if ( this -> _temp_path == "-" )
+		this -> _temp_path = init_cpu_temp();
+
+	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
+		return 0;
+
+	std::fstream tempfile(this -> _temp_path, std::ios::in);
+
+	if ( !tempfile.is_open())
+		return this -> _temp;
+	else if ( !tempfile.good())
+		return this -> _temp;
+
+	std::string line;
+	if ( std::getline(tempfile, line)) {
+
+		try {
+			int t = std::stoi(line);
+			this -> _temp = t * 0.001;
+
+		} catch ( const std::exception& e ) { }
+	}
+
+	tempfile.close();
+	return this -> _temp;
 }
 
 int cpu_t::load() {

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include <fstream>
 #include "common.hpp"
 #include "lowercase_map.hpp"
@@ -95,6 +96,7 @@ class cpu_t {
 
 		};
 
+		int temp();
 		int load();
 		size_t size();
 		bool disabled();
@@ -113,8 +115,10 @@ class cpu_t {
 		int _load;
 		int _smooth;
 		int _def_smooth;
+		int _temp;
 		cpu_t::node_t::tck_t tck0, tck1;
 		common::lowercase_map<cpu_t::node_t> nodes;
+		std::string _temp_path;
 
 		void update_load(const std::string& line);
 		int calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1);
