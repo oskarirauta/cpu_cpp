@@ -63,6 +63,9 @@ class cpu_t {
 				int _number;
 				int _load;
 				int _smooth;
+				int _core;
+				int _temp;
+				std::string _temp_path;
 				cpu_t::node_t::tck_t tck0, tck1;
 				common::lowercase_map<std::string> values;
 
@@ -70,7 +73,11 @@ class cpu_t {
 
 				std::string id() const;
 				int number() const;
+				int core() const;
 				int load() const;
+				int temp() const;
+				int temp();
+				std::string temp_file() const;
 
 				std::string operator [](const std::string& name) const;
 
@@ -89,7 +96,7 @@ class cpu_t {
 				unsigned long long idle_ticks() const;
 				unsigned long long busy_ticks() const;
 
-				node_t() : _id(""), _load(0), _smooth(0) {};
+				node_t() : _id(""), _load(0), _smooth(0), _core(0), _temp(-1), _temp_path("-") {};
 				node_t(const std::string& id);
 
 				friend std::ostream& operator <<(std::ostream& os, const node_t& node);
@@ -97,9 +104,13 @@ class cpu_t {
 		};
 
 		int temp();
-		int load();
-		size_t size();
-		bool disabled();
+		int temp() const;
+
+		int cores() const;
+		int load() const;
+		size_t size() const;
+		bool disabled() const;
+		std::string temp_file() const;
 
 		void update();
 		std::string operator [](const std::string& name);
@@ -116,6 +127,7 @@ class cpu_t {
 		int _smooth;
 		int _def_smooth;
 		int _temp;
+		int _cores;
 		cpu_t::node_t::tck_t tck0, tck1;
 		common::lowercase_map<cpu_t::node_t> nodes;
 		std::string _temp_path;
@@ -123,10 +135,10 @@ class cpu_t {
 		void update_load(const std::string& line);
 		int calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1);
 
-		friend std::ostream& operator <<(std::ostream& os, cpu_t& cpu);
+		friend std::ostream& operator <<(std::ostream& os, const cpu_t& cpu);
 		friend std::ostream& operator <<(std::ostream& os, cpu_t *cpu);
 };
 
 std::ostream& operator <<(std::ostream& os, const cpu_t::node_t& node);
-std::ostream& operator <<(std::ostream& os, cpu_t& cpu);
+std::ostream& operator <<(std::ostream& os, const cpu_t& cpu);
 std::ostream& operator <<(std::ostream& os, cpu_t *cpu);

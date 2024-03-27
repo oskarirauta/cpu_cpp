@@ -38,6 +38,102 @@ static std::string rounded(const std::string& s) {
 	return std::to_string((int)::round(d));
 }
 
+static std::string init_core_temp(int core) {
+
+	if ( std::filesystem::is_directory(std::filesystem::path("/sys/devices/platform/coretemp.0/hwmon/hwmon1"))) {
+
+		std::filesystem::path basepath("/sys/devices/platform/coretemp.0/hwmon/hwmon1");
+		size_t basepath_size = basepath.string().size();
+
+		for ( auto const& dir_entry : std::filesystem::directory_iterator{basepath}) {
+
+			if ( dir_entry.path().string().rfind(basepath.string() + "/temp", 0) != 0 ||
+				!dir_entry.path().string().ends_with("_label"))
+				continue;
+
+			std::string basename = "";
+			size_t direntry_size = dir_entry.path().string().size();
+
+			if ( auto pos = dir_entry.path().string().find_first_of("_"); pos != std::string::npos &&
+				dir_entry.path().string().size() > basepath.string().size() + 1 ) {
+
+				basename = dir_entry.path().string().substr(basepath_size, direntry_size - basepath_size);
+
+				pos -= basepath_size;
+
+				while ( basename.front() == '/' ) {
+					basename.erase(0, 1);
+					pos -= 1;
+				}
+
+				basename = basename.substr(0, pos);
+				if ( basename.back() != '_' )
+					basename += '_';
+
+				std::filesystem::path label(basepath.string() + "/" + basename + "label");
+				std::filesystem::path input(basepath.string() + "/" + basename + "input");
+
+				if ( !basename.starts_with("temp") ||
+					!std::filesystem::exists(label) || !std::filesystem::exists(input))
+					continue;
+
+				std::fstream label_file(label.string(), std::ios::in);
+
+				if ( !label_file.is_open() || !label_file.good()) {
+
+					if ( label_file.is_open())
+						label_file.close();
+
+					continue;
+				}
+
+				std::string line;
+				if ( !std::getline(label_file, line)) {
+
+					label_file.close();
+					continue;
+
+				} else line = common::to_lower(line);
+
+				label_file.close();
+
+				if ( line.empty() || common::to_lower(line) != std::string("core " + std::to_string(core)))
+					continue;
+
+				std::fstream input_file(input.string(), std::ios::in);
+
+				if ( !input_file.is_open() || !input_file.good()) {
+
+					if ( input_file.is_open())
+						input_file.close();
+
+					continue;
+				}
+
+				if ( !std::getline(input_file, line) || line.empty() || line.find_first_not_of("1234567890") != std::string::npos ) {
+
+					input_file.close();
+					continue;
+				}
+
+				input_file.close();
+
+				try {
+					std::stoi(line);
+				} catch ( const std::exception& e ) {
+					continue;
+				}
+
+				return input.string();
+
+			} else continue;
+		}
+	}
+
+	return "";
+}
+
+
 unsigned long long cpu_t::node_t::user() const {
 	return this -> tck1.user;
 }
@@ -95,6 +191,7 @@ cpu_t::node_t::node_t(const std::string& id) {
 	if ( id.size() < 4 )
 		throws << "invalid cpu name " << id << std::endl;
 
+	this -> _temp_path = "-";
 	this -> _id = id;
 	std::string s = id;
 	s.erase(0, 3);
@@ -147,6 +244,7 @@ cpu_t::node_t::node_t(const std::string& id) {
 			else if ( key == "cpu mhz" ) key = "mhz";
 			else if ( key == "cache size" ) key = "cache";
 			else if ( key == "cpu cores" ) key = "cores";
+			else if ( key == "core id" ) key = "core";
 			else if ( key != "stepping" && key != "microcode" && key != "fpu" &&
 				key != "bogomips" && key != "cache_alignment" )
 				continue;
@@ -154,6 +252,20 @@ cpu_t::node_t::node_t(const std::string& id) {
 			if ( key == "cache" ) {
 				value = only_numbers(value);
 				value = common::trim_ws(value);
+			} else if ( key == "core" ) {
+
+				value = only_numbers(value);
+				value = common::trim_ws(value);
+
+				if ( value.empty() || value.find_first_not_of("1234567890") != std::string::npos )
+					value = "0";
+
+				try {
+					this -> _core = std::stoi(value);
+				} catch ( const std::exception& e ) {
+					this -> _core = 0;
+				}
+
 			} else if ( key == "mhz" || key == "bogomips" )
 				value = rounded(value);
 
@@ -164,6 +276,14 @@ cpu_t::node_t::node_t(const std::string& id) {
 		}
 	}
 
+	if ( !this -> values.contains("core")) {
+
+		this -> values.append({ "core", "0" });
+		this -> _core = 0;
+	}
+
+	this -> _temp_path = init_core_temp(this -> _core);
+
 	fd.close();
 }
 
@@ -172,9 +292,79 @@ std::string cpu_t::node_t::id() const {
 	return this -> _id;
 }
 
+int cpu_t::node_t::core() const {
+
+	return this -> _core;
+}
+
 int cpu_t::node_t::load() const {
 
 	return this -> _load;
+}
+
+std::string cpu_t::node_t::temp_file() const {
+
+	return this -> _temp_path;
+}
+
+int cpu_t::node_t::temp() {
+
+	if ( this -> _temp_path == "-" )
+		this -> _temp_path = init_core_temp(this -> _core);
+
+	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
+		return -1;
+
+	std::fstream tempfile(this -> _temp_path, std::ios::in);
+
+	if ( !tempfile.is_open())
+		return this -> _temp;
+	else if ( !tempfile.good())
+		return this -> _temp;
+
+	std::string line;
+	if ( std::getline(tempfile, line)) {
+
+		try {
+			int t = std::stoi(line);
+			this -> _temp = t * 0.001;
+
+		} catch ( const std::exception& e ) { }
+	}
+
+	tempfile.close();
+	return this -> _temp;
+}
+
+int cpu_t::node_t::temp() const {
+
+	if ( this -> _temp_path == "-" )
+		return this -> _temp;
+
+	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
+		return this -> _temp;
+
+	std::fstream tempfile(this -> _temp_path, std::ios::in);
+
+	if ( !tempfile.is_open())
+		return this -> _temp;
+	else if ( !tempfile.good())
+		return this -> _temp;
+
+	std::string line;
+	int _temp;
+	if ( std::getline(tempfile, line)) {
+
+		try {
+			int t = std::stoi(line);
+			_temp = t * 0.001;
+		} catch ( const std::exception& e ) {
+			_temp = this -> _temp;
+		}
+	}
+
+	tempfile.close();
+	return _temp;
 }
 
 std::string cpu_t::node_t::operator [](const std::string& name) const {
@@ -188,6 +378,9 @@ std::string cpu_t::node_t::operator [](const std::string& name) const {
 		if ( value.first == s )
 			return value.second;
 
+	if ( s == "temp" || s == "temperature" )
+		return std::to_string(this -> temp());
+
 	throws << "unknown error while retrieving " << this -> _id << "[" << s << "]" << std::endl;
 }
 
@@ -195,6 +388,6 @@ std::ostream& operator <<(std::ostream& os, const cpu_t::node_t& node) {
 
 	for ( auto value : node.values )
 		os << value.first << ": " << value.second << "\n";
-	os << "load: " << (int)node._load;
+	os << "load: " << (int)node._load << "\ntemp: " << node.temp();
 	return os;
 }

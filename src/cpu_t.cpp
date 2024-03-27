@@ -9,15 +9,20 @@ cpu_t::cpu_t(int smoothing) {
 	std::string line;
 	std::ifstream fd("/proc/stat", std::ios::in);
 
-	if ( fd.fail() || !fd.is_open() || !fd.good())
+	if ( fd.fail() || !fd.is_open() || !fd.good()) {
+
+		if ( fd.is_open())
+			fd.close();
+
 		throws << "failed to open /proc/stat" << std::endl;
+	}
 
 	this -> _size = 0;
 	this -> _smooth = 0;
 	this -> _disabled = false;
 	this -> _def_smooth = smoothing;
 	this -> _temp_path = "-";
-	this -> _temp = 0;
+	this -> _temp = -1;
 
 	while ( getline(fd, line)) {
 
@@ -25,6 +30,45 @@ cpu_t::cpu_t(int smoothing) {
 			this -> _size++;
 
 		update_load(line);
+	}
+
+	fd.close();
+
+	fd.open("/proc/cpuinfo", std::ios::in);
+
+	if ( fd.fail() || !fd.is_open() || !fd.good()) {
+
+		if ( fd.is_open())
+			fd.close();
+
+		throws << "failed top open /proc/cpuinfo" << std::endl;
+	}
+
+	this -> _cores = 1;
+
+	while ( getline(fd, line)) {
+
+		if ( !line.starts_with("cpu cores"))
+			continue;
+
+		if ( auto pos = line.find_first_of(':'); pos != std::string::npos ) {
+
+			line = line.substr(pos, line.size() - pos);
+			while ( line.front() == ':' || std::isspace(line.front()) )
+				line.erase(0, 1);
+			while ( std::isspace(line.back()))
+				line.pop_back();
+			if ( line.find_first_not_of("1234567890") != std::string::npos )
+				continue;
+
+			try {
+				this -> _cores = std::stoi(line);
+				break;
+			} catch ( const std::exception& e ) {
+				continue;
+			}
+		}
+
 	}
 
 	fd.close();
@@ -96,6 +140,96 @@ void cpu_t::update_load(const std::string& line) {
 
 static std::string init_cpu_temp() {
 
+	if ( std::filesystem::is_directory(std::filesystem::path("/sys/devices/platform/coretemp.0/hwmon/hwmon1"))) {
+
+		std::filesystem::path basepath("/sys/devices/platform/coretemp.0/hwmon/hwmon1");
+		size_t basepath_size = basepath.string().size();
+
+		for ( auto const& dir_entry : std::filesystem::directory_iterator{basepath}) {
+
+			if ( dir_entry.path().string().rfind(basepath.string() + "/temp", 0) != 0 ||
+				!dir_entry.path().string().ends_with("_label"))
+				continue;
+
+			std::string basename = "";
+			size_t direntry_size = dir_entry.path().string().size();
+
+			if ( auto pos = dir_entry.path().string().find_first_of("_"); pos != std::string::npos &&
+				dir_entry.path().string().size() > basepath.string().size() + 1 ) {
+
+				basename = dir_entry.path().string().substr(basepath_size, direntry_size - basepath_size);
+
+				pos -= basepath_size;
+
+				while ( basename.front() == '/' ) {
+					basename.erase(0, 1);
+					pos -= 1;
+				}
+
+				basename = basename.substr(0, pos);
+				if ( basename.back() != '_' )
+					basename += '_';
+
+				std::filesystem::path label(basepath.string() + "/" + basename + "label");
+				std::filesystem::path input(basepath.string() + "/" + basename + "input");
+
+				if ( !basename.starts_with("temp") ||
+					!std::filesystem::exists(label) || !std::filesystem::exists(input))
+					continue;
+
+				std::fstream label_file(label.string(), std::ios::in);
+
+				if ( !label_file.is_open() || !label_file.good()) {
+
+					if ( label_file.is_open())
+						label_file.close();
+
+					continue;
+				}
+
+				std::string line;
+				if ( !std::getline(label_file, line)) {
+
+					label_file.close();
+					continue;
+
+				} else line = common::to_lower(line);
+
+				label_file.close();
+
+				if ( line.empty() || !line.starts_with("package id "))
+					continue;
+
+				std::fstream input_file(input.string(), std::ios::in);
+
+				if ( !input_file.is_open() || !input_file.good()) {
+
+					if ( input_file.is_open())
+						input_file.close();
+
+					continue;
+				}
+
+				if ( !std::getline(input_file, line) || line.empty() || line.find_first_not_of("1234567890") != std::string::npos ) {
+
+					input_file.close();
+					continue;
+				}
+
+				input_file.close();
+
+				try {
+					std::stoi(line);
+				} catch ( const std::exception& e ) {
+					continue;
+				}
+
+				return input.string();
+
+			} else continue;
+		}
+	}
+
 	std::filesystem::path basepath("/sys/class/thermal");
 
 	if ( !std::filesystem::is_directory(basepath))
@@ -162,7 +296,7 @@ int cpu_t::temp() {
 		this -> _temp_path = init_cpu_temp();
 
 	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
-		return 0;
+		return -1;
 
 	std::fstream tempfile(this -> _temp_path, std::ios::in);
 
@@ -185,17 +319,58 @@ int cpu_t::temp() {
 	return this -> _temp;
 }
 
-int cpu_t::load() {
+int cpu_t::temp() const {
+
+	if ( this -> _temp_path == "-" )
+		return this -> _temp;
+
+	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
+		return this -> _temp;
+
+	std::fstream tempfile(this -> _temp_path, std::ios::in);
+
+	if ( !tempfile.is_open())
+		return this -> _temp;
+	else if ( !tempfile.good())
+		return this -> _temp;
+
+	std::string line;
+	int _temp;
+	if ( std::getline(tempfile, line)) {
+
+		try {
+			int t = std::stoi(line);
+			_temp = t * 0.001;
+		} catch ( const std::exception& e ) {
+			_temp = this -> _temp;
+		}
+	}
+
+	tempfile.close();
+	return _temp;
+}
+
+int cpu_t::cores() const {
+
+	return this -> _cores;
+}
+
+int cpu_t::load() const {
 
 	return this -> _load;
 }
 
-size_t cpu_t::size() {
+size_t cpu_t::size() const {
 
 	return this -> _size;
 }
 
-bool cpu_t::disabled() {
+std::string cpu_t::temp_file() const {
+
+	return this -> _temp_path;
+}
+
+bool cpu_t::disabled() const {
 
 	return this -> _disabled;
 }
@@ -253,10 +428,12 @@ cpu_t::node_t& cpu_t::operator [](size_t i) {
 	return this -> nodes.at(key);
 }
 
-std::ostream& operator <<(std::ostream& os, cpu_t& cpu) {
+std::ostream& operator <<(std::ostream& os, const cpu_t& cpu) {
 
-	os << "cpus: " << cpu._size << "\n";
-	os << "load: " << (int)cpu._load;
+	os << "cpus:  " << cpu._size << "\n";
+	os << "cores: " << cpu._cores << "\n";
+	os << "load:  " << (int)cpu._load;
+	os << "temp:  " << cpu.temp();
 
 	for ( auto node : cpu.nodes )
 		os << "\n\n" << node.second;

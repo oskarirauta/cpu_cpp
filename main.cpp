@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv) {
 
-	std::cout << "cpu_cpp test" << std::endl;
+	std::cout << "cpu_cpp test\n" << std::endl;
 
 	pid_t PID = ::getpid();
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
 	int i = 0;
 
-	while ( i++ < 20 && !cpu -> disabled()) {
+	while ( i++ < 8 && !cpu -> disabled()) {
 		std::this_thread::sleep_for (std::chrono::milliseconds(850));
 		cpu -> update();
 		proc -> update();
