@@ -65,6 +65,7 @@ class cpu_t {
 				int _smooth;
 				int _core;
 				int _temp;
+				int _temp_max;
 				std::string _temp_path;
 				cpu_t::node_t::tck_t tck0, tck1;
 				common::lowercase_map<std::string> values;
@@ -77,6 +78,7 @@ class cpu_t {
 				int load() const;
 				int temp() const;
 				int temp();
+				int temp_max() const;
 				std::string temp_file() const;
 
 				std::string operator [](const std::string& name) const;
@@ -105,6 +107,7 @@ class cpu_t {
 
 		int temp();
 		int temp() const;
+		int temp_max() const;
 
 		int cores() const;
 		int load() const;
@@ -127,6 +130,7 @@ class cpu_t {
 		int _smooth;
 		int _def_smooth;
 		int _temp;
+		int _temp_max;
 		int _cores;
 		cpu_t::node_t::tck_t tck0, tck1;
 		common::lowercase_map<cpu_t::node_t> nodes;

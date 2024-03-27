@@ -1,5 +1,5 @@
 [![License:MIT](https://img.shields.io/badge/License-MIT-blue?style=plastic)](LICENSE)
-[![C++ CI build](https://github.com/oskarirauta/cpu_cpp/actions/workflows/build.yml/badge.svg)](https://github.com/oskarirauta/cpu_cpp/actions/workflows/build.yml)
+[![C++ CI build](../../actions/workflows/build.yml/badge.svg)](../../actions/workflows/build.yml)
 ### cpu_cpp
 
 CPU and process monitoring library

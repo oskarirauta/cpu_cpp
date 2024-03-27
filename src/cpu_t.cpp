@@ -4,6 +4,8 @@
 #include "logger.hpp"
 #include "cpu/cpu.hpp"
 
+static std::string init_cpu_temp(int* temp_max);
+
 cpu_t::cpu_t(int smoothing) {
 
 	std::string line;
@@ -23,6 +25,7 @@ cpu_t::cpu_t(int smoothing) {
 	this -> _def_smooth = smoothing;
 	this -> _temp_path = "-";
 	this -> _temp = -1;
+	this -> _temp_max = -1;
 
 	while ( getline(fd, line)) {
 
@@ -72,6 +75,12 @@ cpu_t::cpu_t(int smoothing) {
 	}
 
 	fd.close();
+
+	if ( this -> _temp_path == "-" )
+		this -> _temp_path = init_cpu_temp(&this -> _temp_max);
+
+	if ( this -> _temp_path != "-" && !this -> _temp_path.empty())
+		this -> temp();
 }
 
 cpu_t::~cpu_t() {
@@ -138,7 +147,7 @@ void cpu_t::update_load(const std::string& line) {
 	} else logger::warning["cpu"] << "failed to parse line " << line << std::endl;
 }
 
-static std::string init_cpu_temp() {
+static std::string init_cpu_temp(int* temp_max) {
 
 	if ( std::filesystem::is_directory(std::filesystem::path("/sys/devices/platform/coretemp.0/hwmon/hwmon1"))) {
 
@@ -172,6 +181,7 @@ static std::string init_cpu_temp() {
 
 				std::filesystem::path label(basepath.string() + "/" + basename + "label");
 				std::filesystem::path input(basepath.string() + "/" + basename + "input");
+				std::filesystem::path crit(basepath.string() + "/" + basename + "crit");
 
 				if ( !basename.starts_with("temp") ||
 					!std::filesystem::exists(label) || !std::filesystem::exists(input))
@@ -222,6 +232,32 @@ static std::string init_cpu_temp() {
 					std::stoi(line);
 				} catch ( const std::exception& e ) {
 					continue;
+				}
+
+				if ( temp_max != nullptr && std::filesystem::exists(crit)) {
+
+					std::fstream crit_file(crit.string(), std::ios::in);
+
+					if ( crit_file.is_open() && crit_file.good()) {
+
+						if ( std::getline(crit_file, line) && !line.empty() && line.find_first_not_of("1234567890") == std::string::npos ) {
+
+							try {
+
+								*temp_max = std::stoi(line);
+								*temp_max *= 0.001;
+
+							} catch ( const std::exception& e ) {
+
+								*temp_max = -1;
+
+							}
+
+						}
+					} else *temp_max = -1;
+
+					if ( crit_file.is_open())
+						crit_file.close();
 				}
 
 				return input.string();
@@ -293,7 +329,7 @@ static std::string init_cpu_temp() {
 int cpu_t::temp() {
 
 	if ( this -> _temp_path == "-" )
-		this -> _temp_path = init_cpu_temp();
+		this -> _temp_path = init_cpu_temp(&this -> _temp_max);
 
 	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
 		return -1;
@@ -348,6 +384,11 @@ int cpu_t::temp() const {
 
 	tempfile.close();
 	return _temp;
+}
+
+int cpu_t::temp_max() const {
+
+	return this -> _temp_max;
 }
 
 int cpu_t::cores() const {
@@ -432,8 +473,8 @@ std::ostream& operator <<(std::ostream& os, const cpu_t& cpu) {
 
 	os << "cpus:  " << cpu._size << "\n";
 	os << "cores: " << cpu._cores << "\n";
-	os << "load:  " << (int)cpu._load;
-	os << "temp:  " << cpu.temp();
+	os << "load:  " << (int)cpu._load << "\n";
+	os << "temp:  " << cpu.temp() << " max: " << cpu.temp_max();
 
 	for ( auto node : cpu.nodes )
 		os << "\n\n" << node.second;

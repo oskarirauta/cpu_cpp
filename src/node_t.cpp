@@ -38,7 +38,7 @@ static std::string rounded(const std::string& s) {
 	return std::to_string((int)::round(d));
 }
 
-static std::string init_core_temp(int core) {
+static std::string init_core_temp(int core, int* temp_max) {
 
 	if ( std::filesystem::is_directory(std::filesystem::path("/sys/devices/platform/coretemp.0/hwmon/hwmon1"))) {
 
@@ -72,6 +72,7 @@ static std::string init_core_temp(int core) {
 
 				std::filesystem::path label(basepath.string() + "/" + basename + "label");
 				std::filesystem::path input(basepath.string() + "/" + basename + "input");
+				std::filesystem::path crit(basepath.string() + "/" + basename + "crit");
 
 				if ( !basename.starts_with("temp") ||
 					!std::filesystem::exists(label) || !std::filesystem::exists(input))
@@ -123,6 +124,31 @@ static std::string init_core_temp(int core) {
 				} catch ( const std::exception& e ) {
 					continue;
 				}
+
+				if ( temp_max != nullptr && std::filesystem::exists(crit)) {
+
+					std::fstream crit_file(crit.string(), std::ios::in);
+
+					if ( crit_file.is_open() && crit_file.good()) {
+
+						if ( std::getline(crit_file, line) && !line.empty() && line.find_first_not_of("1234567890") == std::string::npos ) {
+
+							try {
+								*temp_max = std::stoi(line);
+								*temp_max *= 0.001;
+
+							} catch ( const std::exception& e ) {
+
+								*temp_max = -1;
+							}
+						}
+
+					} else *temp_max = -1;
+
+					if ( crit_file.is_open())
+						crit_file.close();
+				}
+
 
 				return input.string();
 
@@ -282,9 +308,10 @@ cpu_t::node_t::node_t(const std::string& id) {
 		this -> _core = 0;
 	}
 
-	this -> _temp_path = init_core_temp(this -> _core);
-
 	fd.close();
+
+	this -> _temp_path = init_core_temp(this -> _core, &this -> _temp_max);
+	this -> temp();
 }
 
 std::string cpu_t::node_t::id() const {
@@ -307,10 +334,15 @@ std::string cpu_t::node_t::temp_file() const {
 	return this -> _temp_path;
 }
 
+int cpu_t::node_t::temp_max() const {
+
+	return this -> _temp_max;
+}
+
 int cpu_t::node_t::temp() {
 
 	if ( this -> _temp_path == "-" )
-		this -> _temp_path = init_core_temp(this -> _core);
+		this -> _temp_path = init_core_temp(this -> _core, &this -> _temp_max);
 
 	if ( this -> _temp_path.empty() || this -> _temp_path == "-" )
 		return -1;
@@ -381,6 +413,10 @@ std::string cpu_t::node_t::operator [](const std::string& name) const {
 	if ( s == "temp" || s == "temperature" )
 		return std::to_string(this -> temp());
 
+	if (( s.starts_with("temperature") && ( s.ends_with("max") || s.ends_with("maximum"))) ||
+		( s.ends_with("temperature") && ( s.starts_with("max") || s.starts_with("maximum"))))
+		return std::to_string(this -> temp_max());
+
 	throws << "unknown error while retrieving " << this -> _id << "[" << s << "]" << std::endl;
 }
 
@@ -388,6 +424,6 @@ std::ostream& operator <<(std::ostream& os, const cpu_t::node_t& node) {
 
 	for ( auto value : node.values )
 		os << value.first << ": " << value.second << "\n";
-	os << "load: " << (int)node._load << "\ntemp: " << node.temp();
+	os << "load: " << (int)node._load << "\ntemp: " << node.temp() << " max: " << node.temp_max();
 	return os;
 }
