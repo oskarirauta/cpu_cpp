@@ -319,6 +319,11 @@ std::string cpu_t::node_t::id() const {
 	return this -> _id;
 }
 
+int cpu_t::node_t::number() const {
+
+	return this -> _number;
+}
+
 int cpu_t::node_t::core() const {
 
 	return this -> _core;
