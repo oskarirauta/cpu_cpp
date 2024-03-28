@@ -159,7 +159,6 @@ static std::string init_core_temp(int core, int* temp_max) {
 	return "";
 }
 
-
 unsigned long long cpu_t::node_t::user() const {
 	return this -> tck1.user;
 }
