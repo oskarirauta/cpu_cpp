@@ -105,6 +105,27 @@ class cpu_t {
 
 		};
 
+		class iterator {
+
+			friend class cpu_t;
+
+			private:
+				common::lowercase_map<cpu_t::node_t>::iterator _it;
+				iterator(const common::lowercase_map<cpu_t::node_t>::iterator& it) : _it(it) {}
+
+			public:
+				iterator() = default;
+				iterator& operator++() { ++this -> _it; return *this; }
+				iterator operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+				bool operator==(const iterator& rhs) { return this -> _it == rhs._it; }
+				bool operator!=(const iterator& rhs) { return this -> _it != rhs._it; }
+				const cpu_t::node_t& operator*() { return this -> _it.operator -> () -> second; }
+				const cpu_t::node_t* operator->() { return &this -> _it.operator -> () -> second; }
+		};
+
+		iterator begin();
+		iterator end();
+
 		int temp();
 		int temp() const;
 		int temp_max() const;

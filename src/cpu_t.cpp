@@ -88,6 +88,14 @@ cpu_t::~cpu_t() {
 	this -> nodes.clear();
 }
 
+cpu_t::iterator cpu_t::begin() {
+	return iterator(this -> nodes.begin());
+}
+
+cpu_t::iterator cpu_t::end() {
+	return iterator(this -> nodes.end());
+}
+
 int cpu_t::calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t::tck_t& tck1) {
 
 	unsigned long long total = tck1.total_ticks() - tck0.total_ticks();
