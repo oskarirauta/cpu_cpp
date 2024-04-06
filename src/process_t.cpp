@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "throws.hpp"
-#include "scanner.hpp"
+#include "common/scanner.hpp"
 #include "cpu/cpu.hpp"
 #include "cpu/process.hpp"
 
@@ -129,7 +129,7 @@ void cpu_t::process_t::update_pid(const pid_t& pid) {
 
 	unsigned long long new_utime, new_stime;
 
-	size_t count = scan(line, {
+	size_t count = common::scan(line, {
 			{ 13, &new_utime },
 			{ 14, &new_stime },
 			{ 22, &this -> _memory_usage },

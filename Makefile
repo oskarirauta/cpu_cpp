@@ -11,7 +11,6 @@ OBJS:= \
 CPU_DIR:=.
 include common/Makefile.inc
 include throws/Makefile.inc
-include scanner/Makefile.inc
 include logger/Makefile.inc
 include ./Makefile.inc
 
