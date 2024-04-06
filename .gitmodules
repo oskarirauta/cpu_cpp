@@ -7,6 +7,3 @@
 [submodule "throws"]
 	path = throws
 	url = https://github.com/oskarirauta/throws_cpp.git
-[submodule "scanner"]
-	path = scanner
-	url = https://github.com/oskarirauta/scanner_cpp.git
