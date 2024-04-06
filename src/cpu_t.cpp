@@ -1,6 +1,7 @@
 #include <filesystem>
 
 #include "throws.hpp"
+#include "common.hpp"
 #include "logger.hpp"
 #include "cpu/cpu.hpp"
 
@@ -29,7 +30,7 @@ cpu_t::cpu_t(int smoothing) {
 
 	while ( getline(fd, line)) {
 
-		if ( line.starts_with("cpu") && !line.starts_with("cpu "))
+		if ( common::has_prefix(line, "cpu") && !common::has_prefix(line, "cpu "))
 			this -> _size++;
 
 		update_load(line);
@@ -51,7 +52,7 @@ cpu_t::cpu_t(int smoothing) {
 
 	while ( getline(fd, line)) {
 
-		if ( !line.starts_with("cpu cores"))
+		if ( !common::has_prefix(line, "cpu cores"))
 			continue;
 
 		if ( auto pos = line.find_first_of(':'); pos != std::string::npos ) {
@@ -107,10 +108,10 @@ int cpu_t::calculate_load(const cpu_t::node_t::tck_t& tck0, const cpu_t::node_t:
 
 void cpu_t::update_load(const std::string& line) {
 
-	if ( line.empty() || !line.starts_with("cpu"))
+	if ( line.empty() || !common::has_prefix(line, "cpu"))
 		return;
 
-	else if ( line.starts_with("cpu ")) {
+	else if ( common::has_prefix(line, "cpu ")) {
 
 		this -> tck0 = this -> tck1;
 		this -> tck1 = line;
@@ -131,7 +132,7 @@ void cpu_t::update_load(const std::string& line) {
 		name.erase(pos, name.size() - pos);
 		name = common::trim_ws(common::to_lower(name));
 
-		if ( name.empty() || !name.starts_with("cpu") || name.size() < 4 ) {
+		if ( name.empty() || !common::has_prefix(name, "cpu") || name.size() < 4 ) {
 			logger::warning["cpu"] << "failed to parse cpu name from " << name << std::endl;
 			return;
 		}
@@ -165,7 +166,7 @@ static std::string init_cpu_temp(int* temp_max) {
 		for ( auto const& dir_entry : std::filesystem::directory_iterator{basepath}) {
 
 			if ( dir_entry.path().string().rfind(basepath.string() + "/temp", 0) != 0 ||
-				!dir_entry.path().string().ends_with("_label"))
+				!common::has_suffix(dir_entry.path().string(), "_label"))
 				continue;
 
 			std::string basename = "";
@@ -191,7 +192,7 @@ static std::string init_cpu_temp(int* temp_max) {
 				std::filesystem::path input(basepath.string() + "/" + basename + "input");
 				std::filesystem::path crit(basepath.string() + "/" + basename + "crit");
 
-				if ( !basename.starts_with("temp") ||
+				if ( !common::has_prefix(basename, "temp") ||
 					!std::filesystem::exists(label) || !std::filesystem::exists(input))
 					continue;
 
@@ -215,7 +216,7 @@ static std::string init_cpu_temp(int* temp_max) {
 
 				label_file.close();
 
-				if ( line.empty() || !line.starts_with("package id "))
+				if ( line.empty() || !common::has_prefix(line, "package id "))
 					continue;
 
 				std::fstream input_file(input.string(), std::ios::in);

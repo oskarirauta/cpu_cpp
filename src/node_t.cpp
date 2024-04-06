@@ -48,7 +48,7 @@ static std::string init_core_temp(int core, int* temp_max) {
 		for ( auto const& dir_entry : std::filesystem::directory_iterator{basepath}) {
 
 			if ( dir_entry.path().string().rfind(basepath.string() + "/temp", 0) != 0 ||
-				!dir_entry.path().string().ends_with("_label"))
+				!common::has_suffix(dir_entry.path().string(), "_label"))
 				continue;
 
 			std::string basename = "";
@@ -74,7 +74,7 @@ static std::string init_core_temp(int core, int* temp_max) {
 				std::filesystem::path input(basepath.string() + "/" + basename + "input");
 				std::filesystem::path crit(basepath.string() + "/" + basename + "crit");
 
-				if ( !basename.starts_with("temp") ||
+				if ( !common::has_prefix(basename, "temp") ||
 					!std::filesystem::exists(label) || !std::filesystem::exists(input))
 					continue;
 
@@ -417,8 +417,8 @@ std::string cpu_t::node_t::operator [](const std::string& name) const {
 	if ( s == "temp" || s == "temperature" )
 		return std::to_string(this -> temp());
 
-	if (( s.starts_with("temperature") && ( s.ends_with("max") || s.ends_with("maximum"))) ||
-		( s.ends_with("temperature") && ( s.starts_with("max") || s.starts_with("maximum"))))
+	if (( common::has_prefix(s, "temperature") && ( common::has_suffix(s, "max") || common::has_suffix(s, "maximum"))) ||
+		( common::has_suffix(s, "temperature") && ( common::has_prefix(s, "max") || common::has_prefix(s, "maximum"))))
 		return std::to_string(this -> temp_max());
 
 	throws << "unknown error while retrieving " << this -> _id << "[" << s << "]" << std::endl;
