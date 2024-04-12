@@ -235,12 +235,12 @@ cpu_t::node_t::node_t(const std::string& id) {
 	if ( fd.fail() || !fd.is_open() || !fd.good())
 		throws << "failed to open /proc/cpuinfo" << std::endl;
 
-	std::string line;
 	std::string cpuname;
+	std::string line;
 
 	while ( std::getline(fd, line)) {
 
-		while ( line.back() == ':' )
+		while ( !line.empty() && line.back() == ':' )
 			line.pop_back();
 
 		if ( auto pos = line.find_first_of(":"); pos != std::string::npos ) {
