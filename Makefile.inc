@@ -1,5 +1,6 @@
-CPU_DIR?=cpu
-INCLUDES += -I./$(CPU_DIR)/include
+CPU_DIR?=./cpu
+INCLUDES += -I$(CPU_DIR)/include
+
 CPU_OBJS:= \
 	objs/cpu_tck_t.o \
 	objs/cpu_node_t.o \
