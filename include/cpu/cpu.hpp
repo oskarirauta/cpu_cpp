@@ -54,7 +54,7 @@ class cpu_t {
 						bool operator !=(const tck_t& other);
 
 						tck_t() : user(0), nice(0), system(0), idle(0), iowait(0), irq(0), softirq(0), steal(0), guest(0), guest_nice(0) {}
-						tck_t(const tck_t& other) : user(other.user), nice(other.nice), idle(other.idle), iowait(other.iowait), irq(other.irq),
+						tck_t(const tck_t& other) : user(other.user), nice(other.nice), system(other.system), idle(other.idle), iowait(other.iowait), irq(other.irq),
 									softirq(other.softirq), steal(other.steal), guest(other.guest), guest_nice(other.guest_nice) {}
 						tck_t(const std::string& s);
 				};
