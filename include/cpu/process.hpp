@@ -9,7 +9,7 @@ class cpu_t::process_t {
 		bool _good = true;
 		int _on_cpu = 0;
 		cpu_t::node_t::tck_t tck[2];
-		unsigned long long utime[2], stime[2];
+		unsigned long long utime[2] = { 0, 0 }, stime[2] = { 0, 0 };
 		unsigned long long _memory_usage = 0;
 		double _usage = 0.0;
 

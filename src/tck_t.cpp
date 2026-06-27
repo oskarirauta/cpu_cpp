@@ -8,7 +8,7 @@
 
 cpu_t::node_t::tck_t::tck_t(const std::string& s) {
 
-	std::istringstream ss(s + ( std::isspace(s.back()) ? "" : "\n"));
+	std::istringstream ss(s + (( !s.empty() && std::isspace(s.back())) ? "" : "\n"));
 	std::string cpu_id;
 
 	ss >> cpu_id >>

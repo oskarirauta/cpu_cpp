@@ -19,7 +19,7 @@ static std::string only_numbers(const std::string& s) {
 static std::string no_decimals(const std::string& s) {
 
 	std::string _s(s);
-	while ( _s.back() == '.' )
+	while ( !_s.empty() && _s.back() == '.' )
 		_s.pop_back();
 
 	if ( auto pos = _s.find_first_of("."); pos != std::string::npos )
@@ -32,7 +32,7 @@ static std::string rounded(const std::string& s) {
 	double d;
 	try {
 		d = std::stod(common::trim_ws(std::as_const(s)));
-	} catch ( const std::runtime_error& e ) {
+	} catch ( const std::exception& e ) {	// stod throws invalid_argument / out_of_range
 		return no_decimals(s);
 	}
 	return std::to_string((int)::round(d));
@@ -226,7 +226,7 @@ cpu_t::node_t::node_t(const std::string& id) {
 
 	try {
 		this -> _number = std::stoi(s);
-	} catch ( const std::runtime_error& e ) {
+	} catch ( const std::exception& e ) {	// stoi throws invalid_argument / out_of_range
 		throws << "cpu " << id << " number could not be parsed from " << s << std::endl;
 	}
 
@@ -388,7 +388,7 @@ int cpu_t::node_t::temp() const {
 		return this -> _temp;
 
 	std::string line;
-	int _temp;
+	int _temp = this -> _temp;
 	if ( std::getline(tempfile, line)) {
 
 		try {

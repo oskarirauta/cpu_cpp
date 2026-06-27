@@ -155,7 +155,7 @@ void cpu_t::process_t::update_args(const pid_t& pid) {
 		throw e;
 	}
 
-	while ( line.back() == 0 )
+	while ( !line.empty() && line.back() == 0 )
 		line.pop_back();
 
 	if ( line.empty())
@@ -170,7 +170,7 @@ void cpu_t::process_t::update_args(const pid_t& pid) {
 		throw e;
 	}
 
-	while ( line.back() == 0 )
+	while ( !line.empty() && line.back() == 0 )
 		line.pop_back();
 
 	if ( line.empty())
@@ -201,9 +201,11 @@ void cpu_t::process_t::update() {
 
 		unsigned long long time_diff = this -> tck[1].total_ticks() - this -> tck[0].total_ticks();
 
-		double usr = 100.0f * ( this -> utime[1] - this -> utime[0] ) / time_diff;
-		double sys = 100.0f * ( this -> stime[1] - this -> stime[0] ) / time_diff;
-		this -> _usage = usr + sys;
+		if ( time_diff > 0 ) {
+			double usr = 100.0f * ( this -> utime[1] - this -> utime[0] ) / time_diff;
+			double sys = 100.0f * ( this -> stime[1] - this -> stime[0] ) / time_diff;
+			this -> _usage = usr + sys;
+		}
 	}
 }
 

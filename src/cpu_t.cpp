@@ -58,9 +58,9 @@ cpu_t::cpu_t(int smoothing) {
 		if ( auto pos = line.find_first_of(':'); pos != std::string::npos ) {
 
 			line = line.substr(pos, line.size() - pos);
-			while ( line.front() == ':' || std::isspace(line.front()) )
+			while ( !line.empty() && ( line.front() == ':' || std::isspace(line.front())))
 				line.erase(0, 1);
-			while ( std::isspace(line.back()))
+			while ( !line.empty() && std::isspace(line.back()))
 				line.pop_back();
 			if ( line.find_first_not_of("1234567890") != std::string::npos )
 				continue;
@@ -380,7 +380,7 @@ int cpu_t::temp() const {
 		return this -> _temp;
 
 	std::string line;
-	int _temp;
+	int _temp = this -> _temp;
 	if ( std::getline(tempfile, line)) {
 
 		try {

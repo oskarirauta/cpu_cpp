@@ -60,13 +60,13 @@ class cpu_t {
 				};
 
 				std::string _id;
-				int _number;
-				int _load;
-				int _smooth;
-				int _core;
-				int _temp;
-				int _temp_max;
-				std::string _temp_path;
+				int _number = -1;
+				int _load = 0;
+				int _smooth = 0;
+				int _core = 0;
+				int _temp = -1;
+				int _temp_max = -1;
+				std::string _temp_path = "-";
 				cpu_t::node_t::tck_t tck0, tck1;
 				common::lowercase_map<std::string> values;
 
